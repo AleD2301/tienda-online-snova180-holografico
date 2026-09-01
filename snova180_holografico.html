@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S'NOVA 180 — Tienda y Panel de Administración Holográfico</title>
+<style>
+  /* Efecto de Contenedor Holográfico 3D */
+  .hologram-card {
+      perspective: 1000px;
+      background: linear-gradient(135deg, rgba(0, 243, 255, 0.05), rgba(123, 47, 255, 0.05));
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-radius: 12px; padding: 15px; text-align: center;
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+      position: relative; overflow: hidden;
+  }
+  .hologram-card:hover {
+      transform: translateY(-5px) rotateX(2deg) rotateY(-2deg);
+      box-shadow: 0 10px 30px rgba(0, 243, 255, 0.2), inset 0 0 15px rgba(0, 243, 255, 0.1);
+  }
+  .hologram-img-container { width: 100%; height: 180px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .hologram-img { max-height: 100%; max-width: 100%; object-fit: contain; filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.6)) contrast(1.1); animation: holoFloat 4s ease-in-out infinite alternate; }
+  @keyframes holoFloat {
+      0% { transform: translateY(0px) scale(1); filter: drop-shadow(0 5px 8px rgba(0, 243, 255, 0.5)); }
+      100% { transform: translateY(-8px) scale(1.02); filter: drop-shadow(0 15px 15px rgba(123, 47, 255, 0.8)); }
+  }
+  .hologram-base { position: absolute; bottom: 5px; width: 60%; height: 10px; background: radial-gradient(ellipse at center, rgba(0, 243, 255, 0.8) 0%, rgba(0,0,0,0) 70%); border-radius: 50%; animation: holoPulse 2s infinite; }
+  @keyframes holoPulse { 0% { opacity: 0.4; transform: scale(0.9); } 50% { opacity: 0.9; transform: scale(1.1); } 100% { opacity: 0.4; transform: scale(0.9); } }
+
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg: #070913;
+    --surface: #101423;
+    --surface-2: #181E33;
+    --line: rgba(168, 85, 247, 0.2);
+    --line-glow: rgba(56, 189, 248, 0.4);
+    --text: #F8FAFC;
+    --muted: #94A3B8;
+    --neon-cyan: #38BDF8;
+    --neon-purple: #C084FC;
+    --neon-pink: #F472B6;
+    --neon-green: #4ADE80;
+    --volt: #38BDF8;
+    --volt-hover: #0EA5E9;
+    --brand: #C084FC;
+    --danger: #F43F5E;
+    --radius-s: 8px;
+    --radius-m: 16px;
+    --radius-l: 24px;
+    --glow-card: 0 0 25px rgba(192, 132, 252, 0.15), inset 0 0 15px rgba(56, 189, 248, 0.08);
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    background-image: 
+      radial-gradient(circle at 10% 20%, rgba(192, 132, 252, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+      linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+  }
+
+  h1,h2,h3, .display{
+    font-family:'Archivo', sans-serif;
+    font-weight:700;
+    letter-spacing:-0.02em;
+  }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none;}
+  input, select{
+    font-family:inherit; background:var(--surface); color:var(--text); 
+    border:1px solid var(--line); padding:12px; border-radius:var(--radius-s); width:100%;
+    transition: all .2s ease;
+  }
+  input:focus, select:focus{ border-color: var(--neon-cyan); box-shadow: 0 0 10px rgba(56,189,248,0.3); outline: none; }
+
+  .wrap{ max-width:1280px; margin:0 auto; padding:0 24px; }
+
+  /* ---------- TOPBAR & HEADER ---------- */
+  .topbar-announcement {
+    background: linear-gradient(90deg, #181E33, #231238, #181E33);
+    border-bottom: 1px solid var(--line);
+    font-size: 11.5px;
+    font-family: 'JetBrains Mono';
+    text-align: center;
+    padding: 8px;
+    color: var(--neon-cyan);
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 8px rgba(56,189,248,0.5);
+  }
+
+  header.main{
+    background: rgba(10, 14, 26, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .header-row{
+    display:flex; align-items:center; justify-content:space-between;
+    height:80px;
+  }
+  .logo{ display:flex; align-items:center; gap:12px; flex-shrink:0; }
+  .logo-mark{
+    width:40px; height:40px; border-radius:12px;
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+    position:relative;
+    box-shadow: 0 0 15px rgba(192, 132, 252, 0.5);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-mark::after{
+    content:"180";
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--bg);
+    font-family: 'JetBrains Mono';
+  }
+  .logo-text{ font-size:20px; font-weight:800; letter-spacing:-0.02em; font-family:'Archivo'; }
+  .logo-text span{ background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+  .search-bar-container {
+    flex: 0 1 380px;
+    position: relative;
+  }
+  .search-bar-container input {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 30px;
+    padding: 10px 20px 10px 42px;
+    font-size: 13.5px;
+    color: var(--text);
+  }
+  .search-icon {
+    position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+    color: var(--neon-cyan); font-size: 14px;
+  }
+
+  .header-nav-actions { display:flex; align-items:center; gap:12px; }
+
+  .nav-btn {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 13.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all .2s ease;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  }
+  .nav-btn:hover { 
+    border-color: var(--neon-cyan); 
+    color: var(--neon-cyan); 
+    box-shadow: 0 0 15px rgba(56,189,248,0.25);
+    transform: translateY(-1px);
+  }
+  .cart-badge {
+    background: var(--neon-cyan);
+    color: #070913;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono';
+    font-weight: 700;
+  }
+
+  /* ---------- CATEGORIES HEADER PILLS ---------- */
+  .category-pills-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 0;
+    overflow-x: auto;
+  }
+  .pills-row {
+    display: flex; gap: 12px; align-items: center;
+  }
+  .pill-tab {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all .2s ease;
+  }
+  .pill-tab:hover, .pill-tab.active {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(192, 132, 252, 0.15));
+    border-color: var(--neon-purple);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 15px rgba(192, 132, 252, 0.3);
+  }
+
+  /* ---------- HERO BANNER 180° HOLOGRAPHIC ---------- */
+  .hero-hologram-banner {
+    margin: 32px 0;
+    background: linear-gradient(135deg, rgba(16, 20, 35, 0.9), rgba(28, 18, 48, 0.9));
+    border: 1px solid var(--line);
+    border-radius: var(--radius-l);
+    padding: 48px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--glow-card);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+  }
+  .hero-hologram-banner::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 70% 50%, rgba(56, 189, 248, 0.15) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero-content h1 {
+    font-size: 42px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  .hero-content h1 span {
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple), var(--neon-pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-content p {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 24px;
+  }
+  .hologram-sphere-box {
+    height: 280px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .holo-ring {
+    width: 220px; height: 220px; border-radius: 50%;
+    border: 2px dashed rgba(56, 189, 248, 0.4);
+    position: absolute;
+    animation: spinHolo 12s linear infinite;
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .holo-ring-inner {
+    width: 160px; height: 160px; border-radius: 50%;
+    border: 2px solid var(--neon-purple);
+    position: absolute;
+    animation: spinHoloReverse 8s linear infinite;
+    box-shadow: 0 0 25px rgba(192, 132, 252, 0.3);
+  }
+  .holo-core-text {
+    background: linear-gradient(135deg, var(--surface-2), var(--bg));
+    border: 1px solid var(--neon-cyan);
+    width: 90px; height: 90px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono'; font-weight: 800; font-size: 18px;
+    color: var(--neon-cyan);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+    z-index: 2;
+  }
+  @keyframes spinHolo { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes spinHoloReverse { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+
+  /* ---------- LAYOUT STORE / TABS ---------- */
+  .view-section { display: none; padding: 32px 0 64px 0; }
+  .view-section.active { display: block; }
+
+  .store-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 32px;
+  }
+
+  /* Sidebar Filters */
+  .filters-sidebar {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    padding: 24px;
+    height: fit-content;
+    box-shadow: var(--glow-card);
+  }
+  .filter-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--neon-purple);
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono';
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+  .filter-btn {
+    background: transparent;
+    color: var(--muted);
+    text-align: left;
+    padding: 10px 14px;
+    border-radius: var(--radius-s);
+    font-size: 14px;
+    transition: all .2s ease;
+    border: 1px solid transparent;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    background: rgba(56, 189, 248, 0.08);
+    border-color: rgba(56, 189, 248, 0.3);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+  }
+
+  .payment-methods-box {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 16px;
+    border-radius: var(--radius-s);
+    font-size: 13px;
+  }
+  .payment-methods-box ul {
+    margin-left: 16px;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+
+  /* Product Grid */
+  .catalog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 24px;
+  }
+
+  .product-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all .25s ease;
+    position: relative;
+    box-shadow: var(--glow-card);
+  }
+  .product-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.25), inset 0 0 15px rgba(192, 132, 252, 0.15);
+  }
+  .product-img-wrap {
+    height: 190px;
+    background: radial-gradient(circle at center, rgba(24, 30, 51, 0.8), rgba(10, 14, 26, 0.9));
+    border-bottom: 1px solid var(--line);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .product-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .product-img-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono';
+    color: var(--neon-purple);
+    font-size: 12.5px;
+    text-shadow: 0 0 10px rgba(192, 132, 252, 0.4);
+    background: linear-gradient(45deg, rgba(192, 132, 252, 0.05), rgba(56, 189, 248, 0.05));
+  }
+  .product-badge-group {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .badge-holo {
+    background: rgba(10, 14, 26, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    padding: 3px 10px;
+    font-size: 10px;
+    border-radius: 20px;
+    color: var(--neon-cyan);
+    font-family: 'JetBrains Mono';
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    text-transform: uppercase;
+  }
+  .badge-sale {
+    background: rgba(244, 114, 182, 0.15);
+    border: 1px solid var(--neon-pink);
+    color: var(--neon-pink);
+  }
+  .product-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    justify-content: space-between;
+  }
+  .product-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .product-meta-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .product-price {
+    font-size: 17px;
+    font-family: 'JetBrains Mono';
+    color: var(--neon-cyan);
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+  }
+  .product-stock {
+    font-size: 11.5px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono';
+  }
+
+  .btn {
+    padding: 10px 16px;
+    border-radius: 30px;
+    font-size: 13.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    transition: all .2s ease;
+  }
+  .btn-volt { 
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); 
+    color: #070913; 
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.35);
+    font-weight: 700;
+  }
+  .btn-volt:hover { 
+    filter: brightness(1.15);
+    box-shadow: 0 0 25px rgba(192, 132, 252, 0.6);
+  }
+  .btn-brand { 
+    background: var(--surface-2); 
+    border: 1px solid var(--neon-purple);
+    color: var(--neon-purple); 
+  }
+  .btn-brand:hover { 
+    background: rgba(192, 132, 252, 0.15); 
+    box-shadow: 0 0 15px rgba(192, 132, 252, 0.3);
+  }
+  .btn-danger { 
+    background: rgba(244, 63, 94, 0.15); 
+    color: var(--danger); 
+    border: 1px solid var(--danger); 
+  }
+  .btn-danger:hover { background: rgba(244, 63, 94, 0.3); }
+  .btn:active { transform: scale(0.97); }
+
+  /* ---------- EXPLORACIÓN DE CATEGORÍAS GRID SECUNDARIO ---------- */
+  .categories-exploracion-section {
+    margin: 48px 0;
+  }
+  .sec-title-flex {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .cat-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+  .cat-card-holo {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    padding: 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--glow-card);
+    transition: all .2s ease;
+  }
+  .cat-card-holo:hover {
+    border-color: var(--neon-purple);
+    transform: translateY(-3px);
+    box-shadow: 0 0 25px rgba(192, 132, 252, 0.3);
+  }
+  .cat-card-holo img, .cat-card-holo .holo-icon-placeholder {
+    width: 80px; height: 80px; margin: 0 auto 16px auto;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: var(--neon-cyan);
+  }
+
+  /* ---------- TRUST STRIP & FOOTER ---------- */
+  .trust-strip {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: rgba(16, 20, 35, 0.6);
+    padding: 32px 0;
+    margin-top: 48px;
+  }
+  .trust-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    text-align: center;
+  }
+  .trust-item {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .trust-item strong {
+    display: block;
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 4px;
+    font-family: 'Archivo';
+  }
+
+  footer.main-footer {
+    padding: 64px 0 32px 0;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 48px;
+  }
+  .footer-col h4 {
+    color: var(--text);
+    font-size: 15px;
+    margin-bottom: 16px;
+    font-family: 'Archivo';
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .footer-col ul li a:hover { color: var(--neon-cyan); }
+  .footer-bottom {
+    text-align: center;
+    border-top: 1px solid var(--line);
+    padding-top: 24px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono';
+  }
+
+  /* ---------- ADMIN PANEL STYLES ---------- */
+  .admin-container {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    padding: 32px;
+    box-shadow: var(--glow-card);
+  }
+  .admin-section-title {
+    font-size: 20px;
+    font-family: 'Archivo';
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--neon-cyan);
+  }
+  .admin-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--neon-purple);
+    margin-bottom: 6px;
+    font-family: 'JetBrains Mono';
+  }
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 13.5px;
+  }
+  .admin-table th, .admin-table td {
+    padding: 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+  }
+  .admin-table th {
+    background: var(--surface-2);
+    color: var(--neon-cyan);
+    font-family: 'JetBrains Mono';
+    font-size: 11.5px;
+    text-transform: uppercase;
+  }
+
+  /* ---------- MODAL / CART / CHECKOUT ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(7, 9, 19, 0.85);
+    backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-box {
+    background: var(--surface); border: 1px solid var(--neon-cyan); width: 100%; max-width: 550px;
+    border-radius: var(--radius-m); padding: 32px; position: relative; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 0 40px rgba(56, 189, 248, 0.25);
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer;
+  }
+  .modal-close:hover { color: var(--neon-cyan); }
+
+  .cart-item-row {
+    display: flex; justify-content:space-between; align-items:center;
+    padding: 12px 0; border-bottom: 1px solid var(--line);
+  }
+  .cart-item-controls { display: flex; align-items: center; gap: 8px; }
+
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--surface-2);
+    border: 1px solid var(--neon-cyan); color: var(--text); padding: 14px 22px;
+    border-radius: var(--radius-s); box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
+    font-size: 13.5px; display: none; z-index: 200; animation: slideIn 0.2s ease forwards;
+  }
+  @keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @media (max-width: 900px){
+    .store-layout, .admin-grid, .hero-hologram-banner, .cat-cards-grid, .trust-grid, .footer-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar-announcement">
+  ✨ TOPBAR: NEON EDGE GLOW — HEADER: INTELLIGENT ACTIONS — 180° HOLOGRAPHIC EXPERIENCE
+</div>
+
+<header class="main">
+  <div class="wrap header-row">
+    <a href="#" class="logo" onclick="cambiarVista('tienda')">
+      <div class="logo-mark"></div>
+      <div class="logo-text">S'NOVA <span>180</span></div>
+    </a>
+    
+    <div class="search-bar-container">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="buscadorInput" placeholder="Buscar equipos, licencias, accesorios..." oninput="filtrarBusquedaLive()">
+    </div>
+
+    <div class="header-nav-actions">
+      <button class="nav-btn" onclick="cambiarVista('tienda')">🛍️ Catálogo</button>
+      <button class="nav-btn" onclick="abrirCarrito()">
+        🛒 Carrito
+        <span class="cart-badge" id="cartCount">0</span>
+      </button>
+      <button class="nav-btn" onclick="cambiarVista('admin')" style="border-color:var(--neon-purple); color:var(--neon-purple);">⚙️ Administrar</button>
+    </div>
+  </div>
+</header>
+
+<!-- CATEGORY PILLS BAR -->
+<div class="category-pills-bar">
+  <div class="wrap pills-row" id="pillCategoriesContainer">
+    <button class="pill-tab active" onclick="filtrarPill('todos', this)">Categories</button>
+    <button class="pill-tab" onclick="filtrarPill('tecnologia', this)">Tech & Hardware</button>
+    <button class="pill-tab" onclick="filtrarPill('accesorios', this)">Audio & Wearables</button>
+    <button class="pill-tab" onclick="filtrarPill('software', this)">Licencias & Cloud</button>
+    <button class="pill-tab" onclick="filtrarPill('smartphones', this)">Iphones & Smart</button>
+  </div>
+</div>
+
+<!-- ================= VISTA TIENDA ================= -->
+<div id="vistaTienda" class="view-section active">
+  <div class="wrap">
+    
+    <!-- HERO 180 HOLOGRAPHIC BANNER -->
+    <div class="hero-hologram-banner">
+      <div class="hero-content">
+        <h1>Light projection <span>de que un giro</span></h1>
+        <p>Montar licencia navegación, liquid-lights, shift-lenos, partídas, un giro holográfico impulsado por S'Nova 180.</p>
+        <button class="btn btn-volt" style="width: auto; padding: 12px 28px;" onclick="cambiarVista('tienda')">✨ Explorar Liquid-Light</button>
+      </div>
+      <div class="hologram-sphere-box">
+        <div class="holo-ring"></div>
+        <div class="holo-ring-inner"></div>
+        <div class="holo-core-text">180°</div>
+      </div>
+    </div>
+
+    <div class="store-layout">
+      
+      <!-- FILTROS Y MÉTODOS DE PAGO -->
+      <aside class="filters-sidebar">
+        <div class="filter-title">Categorías Filtro</div>
+        <div class="filter-group" id="filterCategoryContainer">
+          <button class="filter-btn active" onclick="filtrar('todos', this)">Todos los productos</button>
+          <button class="filter-btn" onclick="filtrar('tecnologia', this)">Tecnología & Hardware</button>
+          <button class="filter-btn" onclick="filtrar('accesorios', this)">Accesorios</button>
+          <button class="filter-btn" onclick="filtrar('software', this)">Licencias & Software</button>
+          <button class="filter-btn" onclick="filtrar('smartphones', this)">Smartphones</button>
+        </div>
+
+        <div class="filter-title">Moneda & Región</div>
+        <div class="form-group" style="margin-bottom: 20px;">
+          <select id="monedaSelect" onchange="cambiarMoneda()">
+            <option value="USD">USD ($) - Global</option>
+            <option value="EUR">EUR (€) - Europa</option>
+            <option value="VES">VES (Bs) - Venezuela</option>
+          </select>
+        </div>
+
+        <div class="filter-title">Métodos de Pago Activos</div>
+        <div class="payment-methods-box">
+          <div style="font-weight:600; color:var(--neon-cyan); margin-bottom: 6px;">Disponibles:</div>
+          <ul id="listaMetodosPagoDisplay">
+            <li>Pago Móvil (Bs / Tasa BCV)</li>
+            <li>Zelle / Transferencia USD</li>
+            <li>Binance Pay (USDT)</li>
+            <li>Efectivo (Divisas)</li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- CATÁLOGO -->
+      <main>
+        <div class="catalog-header">
+          <div>
+            <h2 style="font-size: 24px;">Catálogo General</h2>
+            <p style="color: var(--muted); font-size: 13.5px;">Selecciona los artículos para añadirlos a tu orden de compra.</p>
+          </div>
+        </div>
+
+        <div class="products-grid" id="productGrid">
+          <!-- Renderizado dinámico desde JS -->
+        </div>
+      </main>
+
+    </div>
+
+    <!-- SECCIÓN SECUNDARIA: CATEGORÍAS EXPLORACIÓN -->
+    <div class="categories-exploracion-section">
+      <div class="sec-title-flex">
+        <h3 style="font-size: 20px;">Categorias explorartionos ➔</h3>
+      </div>
+      <div class="cat-cards-grid">
+        <div class="cat-card-holo" onclick="filtrar('tecnologia', document.querySelector('.filter-btn'))">
+          <div class="holo-icon-placeholder">💻</div>
+          <div style="font-weight: 700; font-size: 15px;">Tech & Laptops</div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Rendimiento extremo</div>
+        </div>
+        <div class="cat-card-holo" onclick="filtrar('accesorios', document.querySelector('.filter-btn'))">
+          <div class="holo-icon-placeholder">🎧</div>
+          <div style="font-weight: 700; font-size: 15px;">Audio & Anc</div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Sonido inmersivo</div>
+        </div>
+        <div class="cat-card-holo" onclick="filtrar('software', document.querySelector('.filter-btn'))">
+          <div class="holo-icon-placeholder">☁️</div>
+          <div style="font-weight: 700; font-size: 15px;">Cloud & Server</div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Licencias oficiales</div>
+        </div>
+        <div class="cat-card-holo" onclick="filtrar('smartphones', document.querySelector('.filter-btn'))">
+          <div class="holo-icon-placeholder">📱</div>
+          <div style="font-weight: 700; font-size: 15px;">Smartphones</div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Última generación</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= VISTA ADMIN ================= -->
+<div id="vistaAdmin" class="view-section">
+  <div class="wrap">
+    <div class="admin-container">
+      <div class="admin-section-title">
+        <span>Panel de Control & Administración S'Nova 180</span>
+        <button class="nav-btn" onclick="cambiarVista('tienda')">Ver Tienda ➔</button>
+      </div>
+
+      <div class="admin-grid">
+        <!-- AGREGAR / EDITAR PRODUCTO -->
+        <div style="background:var(--surface-2); padding:20px; border-radius:var(--radius-m); border:1px solid var(--line);">
+          <div class="filter-title" style="margin-bottom:12px;">Registrar o Modificar Producto Holográfico</div>
+          <div class="form-group">
+            <label class="form-label">Nombre del Producto</label>
+            <input type="text" id="adminProdName" placeholder="Ej. NovaBook Pro X">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Precio ($ USD)</label>
+            <input type="number" id="adminProdPrice" placeholder="179.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stock / Inventario</label>
+            <input type="number" id="adminProdStock" placeholder="10">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoría</label>
+            <select id="adminProdCategory">
+              <option value="tecnologia">Tecnología & Hardware</option>
+              <option value="accesorios">Accesorios & Audio</option>
+              <option value="software">Licencias & Software</option>
+              <option value="smartphones">Smartphones</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">URL de Imagen (o dejar vacío para diseño holográfico)</label>
+            <input type="text" id="adminProdImg" placeholder="https://ejemplo.com/imagen.jpg">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Etiqueta (Ej. NUEVO, Sale, -20%)</label>
+            <input type="text" id="adminProdTag" placeholder="NUEVO">
+          </div>
+          <button class="btn btn-volt" onclick="guardarProductoAdmin()">Guardar / Actualizar Producto</button>
+        </div>
+
+        <!-- GESTIÓN DE MÉTODOS DE PAGO -->
+        <div style="background:var(--surface-2); padding:20px; border-radius:var(--radius-m); border:1px solid var(--line);">
+          <div class="filter-title" style="margin-bottom:12px;">Gestión de Métodos de Pago</div>
+          <div class="form-group">
+            <label class="form-label">Anexar Nuevo Método de Pago</label>
+            <input type="text" id="nuevoMetodoInput" placeholder="Ej. Zelle: pagos@snova180.com">
+          </div>
+          <button class="btn btn-brand" style="margin-bottom:20px;" onclick="agregarMetodoPago()">Añadir Método</button>
+
+          <div class="filter-title" style="margin-bottom:6px;">Métodos Actuales Registrados</div>
+          <div id="adminListaMetodosContainer" style="font-size:13px; color:var(--muted); max-height:140px; overflow-y:auto;">
+            <!-- Renderizado dinámico -->
+          </div>
+        </div>
+      </div>
+
+      <!-- INVENTARIO GLOBAL TABLA -->
+      <div class="filter-title">Inventario Actual en Stock</div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Categoría</th>
+            <th>Precio</th>
+            <th>Stock</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="adminInventoryTableBody">
+          <!-- Renderizado dinámico -->
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL CARRITO / CHECKOUT ================= -->
+<div class="modal-overlay" id="modalCarrito">
+  <div class="modal-box">
+    <button class="modal-close" onclick="cerrarCarrito()">✕</button>
+    <h2 style="font-size: 22px; margin-bottom: 16px; color: var(--neon-cyan);">Tu Carrito Holográfico</h2>
+    
+    <div id="cartItemsContainer" style="max-height: 250px; overflow-y: auto; margin-bottom: 16px;">
+      <!-- Items -->
+    </div>
+
+    <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-s); margin-bottom: 20px; border: 1px solid var(--line);">
+      <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:700;">
+        <span>Total a Pagar:</span>
+        <span id="cartTotalAmount" class="mono" style="color:var(--neon-cyan);">$0.00</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <button class="btn btn-volt" onclick="procesarPagoPasarela()">💳 Pagar Online (Pasarela Segura)</button>
+      <button class="btn" style="background: #25D366; color: #070913; font-weight: 700;" onclick="comprarPorWhatsApp()">📱 Comprar y Pagar por WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">Notificación del Sistema</div>
+
+<!-- TRUST STRIP -->
+<div class="trust-strip">
+  <div class="wrap trust-grid">
+    <div class="trust-item">
+      <strong>Rastreo de pedido</strong>
+      Seguimiento en tiempo real vía satélite holográfico.
+    </div>
+    <div class="trust-item">
+      <strong>Garantías 180°</strong>
+      Protección total ante cualquier fallo de hardware.
+    </div>
+    <div class="trust-item">
+      <strong>Transacciones seguras</strong>
+      Encriptación cuántica de extremo a extremo.
+    </div>
+    <div class="trust-item">
+      <strong>Soporte prioritario</strong>
+      Comenta rápido ahora con asistencia 24/7.
+    </div>
+  </div>
+</div>
+
+<footer class="main-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div class="logo" style="margin-bottom: 16px;">
+          <div class="logo-mark"></div>
+          <div class="logo-text">S'NOVA <span>180</span></div>
+        </div>
+        <p>Equipos tecnológicos seleccionados, sin ruido de catálogo interminable ni letra chica. Diseñados para moverse rápido.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Comprar</h4>
+        <ul>
+          <li><a href="#" onclick="filtrar('tecnologia', document.querySelector('.filter-btn'))">Laptops & PC</a></li>
+          <li><a href="#" onclick="filtrar('smartphones', document.querySelector('.filter-btn'))">Celulares</a></li>
+          <li><a href="#" onclick="filtrar('accesorios', document.querySelector('.filter-btn'))">Audio & Periféricos</a></li>
+          <li><a href="#" onclick="filtrar('software', document.querySelector('.filter-btn'))">Licencias Cloud</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Ayuda</h4>
+        <ul>
+          <li><a href="#" onclick="abrirCarrito()">Rastrear pedido</a></li>
+          <li><a href="#">Devoluciones</a></li>
+          <li><a href="#">Garantías</a></li>
+          <li><a href="#">Preguntas frecuentes</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>S'Nova 180</h4>
+        <ul>
+          <li><a href="#" onclick="cambiarVista('admin')">Quiénes somos</a></li>
+          <li><a href="#" onclick="cambiarVista('admin')">Vender con nosotros</a></li>
+          <li><a href="#" onclick="comprarPorWhatsApp()">Contacto Directo</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © 2026 S'Nova 180. Todos los derechos reservados. Diseñado para moverse rápido, sin relleno.
+    </div>
+  </div>
+</footer>
+
+<!-- Botón de Acceso Admin flotante -->
+<button onclick="verifyAdminAccess()" style="position:fixed; top:20px; right:20px; background:var(--neon-purple); color:#fff; border:1px solid var(--neon-cyan); padding:10px 15px; border-radius:8px; cursor:pointer; z-index:1000; font-family:'JetBrains Mono';">🛡️ Admin Dashboard</button>
+
+<!-- Panel de Administración adicional (Oculto por defecto) -->
+<div id="adminDashboard" style="display:none; background:var(--surface); border:1px solid var(--neon-cyan); padding:20px; margin:20px auto; max-width:800px; border-radius:12px;">
+    <h2>Panel de Control y Analíticas</h2>
+    <div id="adminDashboardMetrics" style="margin: 15px 0;"></div>
+    <hr style="border-color: var(--line);">
+    <h3>Subir Nueva Imagen Multimedia (Efecto Holograma 3D)</h3>
+    <p style="font-size:12px; color:var(--muted);">Selecciona un archivo PNG o JPG desde tu PC para asignarlo al producto 1:</p>
+    <input type="file" accept="image/png, image/jpeg" onchange="handleImageUpload(event, 1)" style="color:var(--text);">
+</div>
+
+<!-- Bloque Principal de Scripts -->
+<script>
+  let productos = [
+    { id: 1, name: "Mini UPS 10400mAh de reserva de batería fuente de alimentación ininterrumpida 5V/9V/12V/15V/24V", price: 50.00, stock: 8, category: "tecnologia", img: "ruta_o_enlace_imagen_1.jpg", tag: "NUEVO" },
+    { id: 2, name: "Mini UPS 20000 mAh", price: 70.00, stock: 15, category: "tecnologia", img: "ruta_o_enlace_imagen_2.jpg", tag: "Sale" },
+    { id: 3, name: "Mini UPS de 4050 mAh, fuente de alimentación ininterrumpida con salida 3A", price: 42.00, stock: 12, category: "tecnologia", img: "ruta_o_enlace_imagen_3.jpg", tag: "NUEVO" },
+    { id: 4, name: "Shirtplir Iophone", price: 33.00, stock: 6, category: "smartphones", img: "", tag: "-19%" },
+    { id: 5, name: "Licencia Cloud Server (1 Año)", price: 299.00, stock: 20, category: "software", img: "", tag: "PRO" },
+    { id: 6, name: "Teclado Mecánico RGB Volt", price: 89.99, stock: 5, category: "tecnologia", img: "", tag: "SALE" }
+  ];
+
+  let metodosPago = [
+    "Pago Móvil (Bs / Tasa BCV)",
+    "Zelle / Transferencia USD",
+    "Binance Pay (USDT)",
+    "Efectivo (Divisas)"
+  ];
+
+  let carrito = [];
+  let monedaActual = 'USD';
+  let tasaCambioVES = 36.5; 
+  let tasaCambioEUR = 0.92;
+
+  function cambiarVista(vista) {
+    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+    if(vista === 'tienda') {
+      document.getElementById('vistaTienda').classList.add('active');
+      renderizarProductos('todos');
+    } else if(vista === 'admin') {
+      document.getElementById('vistaAdmin').classList.add('active');
+      renderizarTablaAdmin();
+      renderizarMetodosAdmin();
+    }
+  }
+
+  function mostrarNotificacion(mensaje) {
+    const toast = document.getElementById('toast');
+    toast.textContent = mensaje;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3500);
+  }
+
+  function formatearPrecio(precioUSD) {
+    if(monedaActual === 'EUR') {
+      return `€${(precioUSD * tasaCambioEUR).toFixed(2)}`;
+    } else if(monedaActual === 'VES') {
+      return `Bs. ${(precioUSD * tasaCambioVES).toFixed(2)}`;
+    }
+    return `$${precioUSD.toFixed(2)}`;
+  }
+
+  function cambiarMoneda() {
+    monedaActual = document.getElementById('monedaSelect').value;
+    renderizarProductos(categoriaActivaActual);
+  }
+
+  let categoriaActivaActual = 'todos';
+
+  function renderizarProductos(categoriaFiltro, busqueda = '') {
+    categoriaActivaActual = categoriaFiltro;
+    const grid = document.getElementById('productGrid');
+    grid.innerHTML = '';
+
+    let filtrados = categoriaFiltro === 'todos' ? productos : productos.filter(p => p.category === categoriaFiltro);
+
+    if(busqueda.trim() !== '') {
+      const q = busqueda.toLowerCase();
+      filtrados = filtrados.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
+    }
+
+    if(filtrados.length === 0) {
+      grid.innerHTML = `<div style="color:var(--muted); grid-column:1/-1; padding:20px; text-align:center;">No hay artículos holográficos disponibles con este criterio.</div>`;
+      return;
+    }
+
+    filtrados.forEach(p => {
+      let imagenHtml = p.img && !p.img.includes('ruta_o_enlace') ? `<img src="${p.img}" alt="${p.name}">` : `<div class="product-img-placeholder">[ Hologram 180° ]</div>`;
+      let tagHtml = p.tag ? `<span class="badge-holo ${p.tag.toLowerCase().includes('sale') ? 'badge-sale' : ''}">${p.tag}</span>` : '';
+      
+      grid.innerHTML += `
+        <div class="product-card">
+          <div class="product-img-wrap">
+            <div class="product-badge-group">
+              ${tagHtml}
+              <span class="badge-holo">${p.category.toUpperCase()}</span>
+            </div>
+            ${imagenHtml}
+          </div>
+          <div class="product-body">
+            <div>
+              <div class="product-name">${p.name}</div>
+              <div class="product-meta-info">
+                <div class="product-price mono">${formatearPrecio(p.price)}</div>
+                <div class="product-stock">Stock: ${p.stock}</div>
+              </div>
+            </div>
+            <button class="btn btn-volt" onclick="agregarAlCarrito(${p.id})">Añadir al Carrito</button>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  function filtrar(cat, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    renderizarProductos(cat, document.getElementById('buscadorInput').value);
+  }
+
+  function filtrarPill(cat, btn) {
+    document.querySelectorAll('.pill-tab').forEach(b => b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    renderizarProductos(cat, document.getElementById('buscadorInput').value);
+  }
+
+  function filtrarBusquedaLive() {
+    const val = document.getElementById('buscadorInput').value;
+    renderizarProductos(categoriaActivaActual, val);
+  }
+
+  function agregarAlCarrito(idProd) {
+    const prod = productos.find(p => p.id === idProd);
+    if(!prod || prod.stock <= 0) {
+      mostrarNotificacion('El producto seleccionado no tiene stock disponible.');
+      return;
+    }
+
+    const itemEnCarrito = carrito.find(item => item.id === idProd);
+    if(itemEnCarrito) {
+      if(itemEnCarrito.qty < prod.stock) {
+        itemEnCarrito.qty++;
+      } else {
+        mostrarNotificacion('Has alcanzado el límite del stock disponible.');
+        return;
+      }
+    } else {
+      carrito.push({ id: prod.id, name: prod.name, price: prod.price, qty: 1 });
+    }
+
+    actualizarContadorCarrito();
+    mostrarNotificacion(`"${prod.name}" sincronizado al carrito.`);
+  }
+
+  function actualizarContadorCarrito() {
+    const totalItems = carrito.reduce((sum, item) => sum + item.qty, 0);
+    document.getElementById('cartCount').textContent = totalItems;
+  }
+
+  function abrirCarrito() {
+    renderizarContenidoCarrito();
+    document.getElementById('modalCarrito').style.display = 'flex';
+  }
+
+  function cerrarCarrito() {
+    document.getElementById('modalCarrito').style.display = 'none';
+  }
+
+  function renderizarContenidoCarrito() {
+    const container = document.getElementById('cartItemsContainer');
+    container.innerHTML = '';
+
+    if(carrito.length === 0) {
+      container.innerHTML = `<div style="color:var(--muted); text-align:center; padding:20px;">Tu carrito está vacío.</div>`;
+      document.getElementById('cartTotalAmount').textContent = formatearPrecio(0);
+      return;
+    }
+
+    let total = 0;
+    carrito.forEach(item => {
+      let subtotal = item.price * item.qty;
+      total += subtotal;
+
+      container.innerHTML += `
+        <div class="cart-item-row">
+          <div>
+            <div style="font-weight:600; font-size:14px;">${item.name}</div>
+            <div class="mono" style="font-size:12px; color:var(--muted);">${formatearPrecio(item.price)} c/u</div>
+          </div>
+          <div class="cart-item-controls">
+            <button class="nav-btn" style="padding:4px 10px;" onclick="cambiarCantidad(${item.id}, -1)">-</button>
+            <span class="mono" style="font-size:14px; width:20px; text-align:center;">${item.qty}</span>
+            <button class="nav-btn" style="padding:4px 10px;" onclick="cambiarCantidad(${item.id}, 1)">+</button>
+            <button class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="eliminarItemCarrito(${item.id})">🗑️</button>
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById('cartTotalAmount').textContent = formatearPrecio(total);
+  }
+
+  function cambiarCantidad(id, delta) {
+    const item = carrito.find(i => i.id === id);
+    const prod = productos.find(p => p.id === id);
+    if(item) {
+      let nuevaQty = item.qty + delta;
+      if(nuevaQty > 0 && nuevaQty <= prod.stock) {
+        item.qty = nuevaQty;
+      } else if(nuevaQty > prod.stock) {
+        mostrarNotificacion('Stock máximo alcanzado.');
+      } else {
+        eliminarItemCarrito(id);
+        return;
+      }
+    }
+    actualizarContadorCarrito();
+    renderizarContenidoCarrito();
+  }
+
+  function eliminarItemCarrito(id) {
+    carrito = carrito.filter(i => i.id !== id);
+    actualizarContadorCarrito();
+    renderizarContenidoCarrito();
+  }
+
+  function procesarPagoPasarela() {
+    if(carrito.length === 0) {
+      mostrarNotificacion('El carrito está vacío.');
+      return;
+    }
+    carrito.forEach(item => {
+      let p = productos.find(prod => prod.id === item.id);
+      if(p) p.stock -= item.qty;
+    });
+    carrito = [];
+    actualizarContadorCarrito();
+    cerrarCarrito();
+    mostrarNotificacion('¡Pago cuántico procesado con éxito! Pedido registrado.');
+    renderizarProductos(categoriaActivaActual);
+  }
+
+  function comprarPorWhatsApp() {
+    if(carrito.length === 0) {
+      mostrarNotificacion('El carrito está vacío.');
+      return;
+    }
+    let total = carrito.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    let mensaje = "Hola S'Nova 180, quiero realizar el siguiente pedido holográfico:%0A";
+    carrito.forEach(item => {
+      mensaje += `- ${item.qty}x ${item.name} (${formatearPrecio(item.price * item.qty)})%0A`;
+    });
+    mensaje += `%0ATotal a pagar: ${formatearPrecio(total)}`;
+    
+    window.open(`https://wa.me/?text=${mensaje}`, '_blank');
+  }
+
+  function renderizarTablaAdmin() {
+    const tbody = document.getElementById('adminInventoryTableBody');
+    tbody.innerHTML = '';
+
+    productos.forEach(p => {
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${p.name}</strong></td>
+          <td>${p.category}</td>
+          <td class="mono">$${p.price.toFixed(2)}</td>
+          <td class="mono">${p.stock} un.</td>
+          <td>
+            <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="eliminarProductoAdmin(${p.id})">Eliminar</button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function guardarProductoAdmin() {
+    let name = document.getElementById('adminProdName').value.trim();
+    let price = parseFloat(document.getElementById('adminProdPrice').value);
+    let stock = parseInt(document.getElementById('adminProdStock').value);
+    let category = document.getElementById('adminProdCategory').value;
+    let img = document.getElementById('adminProdImg').value.trim();
+    let tag = document.getElementById('adminProdTag').value.trim() || 'NUEVO';
+
+    if(!name || isNaN(price) || isNaN(stock)) {
+      mostrarNotificacion('Por favor completa los campos obligatorios (Nombre, Precio, Stock).');
+      return;
+    }
+
+    let nuevoId = productos.length > 0 ? Math.max(...productos.map(p => p.id)) + 1 : 1;
+    productos.push({ id: nuevoId, name, price, stock, category, img, tag });
+
+    document.getElementById('adminProdName').value = '';
+    document.getElementById('adminProdPrice').value = '';
+    document.getElementById('adminProdStock').value = '';
+    document.getElementById('adminProdImg').value = '';
+    document.getElementById('adminProdTag').value = '';
+
+    renderizarTablaAdmin();
+    mostrarNotificacion('¡Producto holográfico registrado con éxito!');
+  }
+
+  function eliminarProductoAdmin(id) {
+    productos = productos.filter(p => p.id !== id);
+    renderizarTablaAdmin();
+    mostrarNotificacion('Producto eliminado del sistema.');
+  }
+
+  function renderizarMetodosAdmin() {
+    const container = document.getElementById('adminListaMetodosContainer');
+    const displayList = document.getElementById('listaMetodosPagoDisplay');
+    container.innerHTML = '';
+    displayList.innerHTML = '';
+
+    metodosPago.forEach((m, idx) => {
+      container.innerHTML += `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; background:var(--surface); padding:8px 12px; border-radius:var(--radius-s);">
+          <span>${m}</span>
+          <button class="btn btn-danger" style="padding:2px 8px; font-size:10px;" onclick="eliminarMetodoPago(${idx})">X</button>
+        </div>
+      `;
+      displayList.innerHTML += `<li>${m}</li>`;
+    });
+  }
+
+  function agregarMetodoPago() {
+    let input = document.getElementById('nuevoMetodoInput');
+    let val = input.value.trim();
+    if(val) {
+      metodosPago.push(val);
+      input.value = '';
+      renderizarMetodosAdmin();
+      mostrarNotificacion('Método de pago agregado correctamente.');
+    }
+  }
+
+  function eliminarMetodoPago(idx) {
+    metodosPago.splice(idx, 1);
+    renderizarMetodosAdmin();
+    mostrarNotificacion('Método de pago eliminado.');
+  }
+
+  // Script de analíticas de almacenamiento local y seguridad
+  let isAdminLoggedIn = sessionStorage.getItem('snova_admin_auth') === 'true';
+  let appData = JSON.parse(localStorage.getItem('snova_secure_db')) || {
+      products: [
+          { id: 1, name: "Mini UPS 10400mAh", price: 50.0, stock: 8, image: "", ratings: [], clicks: 0 },
+          { id: 2, name: "Mini UPS 20000 mAh", price: 70.0, stock: 15, image: "", ratings: [], clicks: 0 }
+      ],
+      analytics: { totalVisits: parseInt(localStorage.getItem('snova_visits') || '0') }
+  };
+
+  appData.analytics.totalVisits++;
+  localStorage.setItem('snova_visits', appData.analytics.totalVisits);
+
+  function saveDB() { 
+      localStorage.setItem('snova_secure_db', JSON.stringify(appData)); 
+  }
+
+  function verifyAdminAccess() {
+      if (isAdminLoggedIn) {
+          document.getElementById('adminDashboard').style.display = 'block';
+          renderDashboardMetrics();
+          return;
+      }
+      let pass = prompt("Acceso Restringido. Ingrese clave de Administrador:");
+      if (pass === "snova2026") {
+          isAdminLoggedIn = true;
+          sessionStorage.setItem('snova_admin_auth', 'true');
+          document.getElementById('adminDashboard').style.display = 'block';
+          renderDashboardMetrics();
+          alert("Acceso concedido al Dashboard.");
+      } else if (pass !== null) {
+          alert("Contraseña incorrecta.");
+      }
+  }
+
+  function handleImageUpload(event, productId) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+          let prod = appData.products.find(p => p.id === productId);
+          if (prod) prod.image = e.target.result;
+          saveDB();
+          alert("¡Imagen cargada con éxito! Se ha adaptado al formato holográfico.");
+      };
+      reader.readAsDataURL(file);
+  }
+
+  function renderDashboardMetrics() {
+      let totalClicks = appData.products.reduce((acc, p) => acc + (p.clicks || 0), 0);
+      document.getElementById('adminDashboardMetrics').innerHTML = `
+          <div style="display:flex; gap:20px;">
+              <div style="background:var(--surface-2); padding:10px; border-radius:6px; flex:1;">
+                  <strong>Visitas Totales:</strong> <br><span style="font-size:20px; color:var(--neon-cyan);">${appData.analytics.totalVisits}</span>
+              </div>
+              <div style="background:var(--surface-2); padding:10px; border-radius:6px; flex:1;">
+                  <strong>Interés / Clicks:</strong> <br><span style="font-size:20px; color:var(--neon-purple);">${totalClicks}</span>
+              </div>
+          </div>
+      `;
+  }
+
+  renderizarProductos('todos');
+</script>
+</body>
+</html>
